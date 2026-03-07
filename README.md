@@ -4,6 +4,51 @@ Deploys a hub-and-spoke network topology on Azure with Azure Firewall, Bastion, 
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph Hub["Hub Virtual Network"]
+        style Hub fill:#0078D4,color:#fff
+        Firewall["Azure Firewall\n(Standard/Premium)"]
+        Bastion["Azure Bastion"]
+        VPNGw["VPN Gateway"]
+        RouteServer["Route Server"]
+    end
+
+    subgraph SpokeA["Spoke VNet - App"]
+        style SpokeA fill:#3F8624,color:#fff
+        FrontendSubnet["Frontend Subnet"]
+        BackendSubnet["Backend Subnet"]
+    end
+
+    subgraph SpokeB["Spoke VNet - Data"]
+        style SpokeB fill:#FF9900,color:#fff
+        DBSubnet["Database Subnet"]
+        StorageSubnet["Storage Subnet"]
+    end
+
+    subgraph SpokeC["Spoke VNet - DMZ"]
+        style SpokeC fill:#DD344C,color:#fff
+        PublicSubnet["Public Subnet"]
+        PrivateSubnet["Private Subnet"]
+    end
+
+    subgraph Routing["Route Tables"]
+        style Routing fill:#8C4FFF,color:#fff
+        UDR["UDR: 0.0.0.0/0\n--> Azure Firewall"]
+    end
+
+    OnPrem["On-Premises Network"] --> VPNGw
+    Hub -- "Peering" --> SpokeA
+    Hub -- "Peering" --> SpokeB
+    Hub -- "Peering" --> SpokeC
+    Firewall --> Routing
+    Routing --> SpokeA
+    Routing --> SpokeB
+    Routing --> SpokeC
+```
+
+### ASCII Diagram
+
 ```
                         ┌─────────────────────────────────────────────┐
                         │              Hub Virtual Network            │
