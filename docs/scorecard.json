@@ -1,0 +1,64 @@
+{
+  "repo": "terraform-azure-hub-spoke-network",
+  "generated": "2026-03-15",
+  "scores": {
+    "documentation": 7,
+    "maintainability": 8,
+    "security": 7,
+    "observability": 5,
+    "deployability": 8,
+    "portability": 6,
+    "testability": 7,
+    "scalability": 8,
+    "reusability": 7,
+    "production_readiness": 7
+  },
+  "overall": 7.0,
+  "top_gaps": [
+    "No .gitignore file present",
+    "No sub-modules for composability (monolithic structure)",
+    "Example directories lack README files",
+    "No pre-commit hook configuration",
+    "Tests exist but lack integration/end-to-end coverage",
+    "No Makefile or Taskfile for local development",
+    "No architecture diagram in documentation",
+    "No cost estimation or Infracost integration",
+    "No automated security scanning (tfsec/checkov) in CI",
+    "No observability/monitoring configuration"
+  ],
+  "fixes_applied": [
+    "GitHub Actions CI workflow configured",
+    "Test infrastructure present (tests/ directory)",
+    "CONTRIBUTING.md present for contributor guidance",
+    "SECURITY.md present for vulnerability reporting",
+    "CODEOWNERS file established for review ownership",
+    ".editorconfig ensures consistent code formatting",
+    ".gitattributes for line ending normalization",
+    "LICENSE clearly defined",
+    "CHANGELOG.md tracks version history",
+    "Three example configurations (basic, advanced, complete)"
+  ],
+  "remaining_risks": [
+    "Missing .gitignore could lead to .tfstate files being committed",
+    "Monolithic module limits flexibility for complex topologies",
+    "No network connectivity validation in tests",
+    "No NSG rule auditing automation"
+  ],
+  "roadmap": {
+    "30_day": [
+      "Create .gitignore with Terraform-standard exclusions",
+      "Add README files to all example directories",
+      "Add pre-commit hooks configuration"
+    ],
+    "60_day": [
+      "Extract hub and spoke into sub-modules",
+      "Add Terratest integration tests for peering connectivity",
+      "Add tfsec and checkov to CI pipeline"
+    ],
+    "90_day": [
+      "Add network topology diagram to README",
+      "Implement NSG rule auditing automation",
+      "Add multi-region hub-spoke example"
+    ]
+  }
+}

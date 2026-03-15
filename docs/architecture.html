@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture -- terraform-azure-hub-spoke-network</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0c0b;color:#f5f2eb;font-family:'SF Mono','Cascadia Code','Fira Code',monospace;line-height:1.7;padding:0}
+a{color:#c8420a;text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1200px;margin:0 auto;padding:2rem}
+h1,h2,h3{color:#f5f2eb;margin-bottom:1rem}
+h1{font-size:2rem;border-bottom:3px solid #c8420a;padding-bottom:.5rem;margin-bottom:2rem}
+h2{font-size:1.4rem;border-bottom:1px solid #333;padding-bottom:.4rem;margin-top:2.5rem}
+h3{font-size:1.1rem;color:#c8420a}
+.badge{display:inline-block;background:#0078d4;color:#fff;padding:4px 14px;border-radius:4px;font-size:.75rem;font-weight:700;margin-right:8px;letter-spacing:.5px}
+.badge-accent{background:#c8420a}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1.5rem 0}
+.card{background:#161816;border:1px solid #222;border-radius:8px;padding:1.2rem}
+.card h3{margin-bottom:.5rem;font-size:.95rem}
+.card p{font-size:.82rem;color:#bbb}
+.card .num{font-size:1.8rem;color:#c8420a;font-weight:700}
+.arch-diagram{background:#121312;border:1px solid #333;border-radius:8px;padding:2rem;margin:1.5rem 0;overflow-x:auto}
+.box{background:#1a1b1a;border:2px solid #c8420a;border-radius:6px;padding:.7rem 1.2rem;text-align:center;font-size:.8rem;min-width:110px;display:inline-block}
+.box.blue{border-color:#0078d4;color:#7ec8f0}
+.box.green{border-color:#3f8624;color:#7fba00}
+.box.red{border-color:#dd344c;color:#ff6b7a}
+.box.purple{border-color:#8c4fff;color:#b4a0ff}
+.box.orange{border-color:#ff9900;color:#ffb84d}
+.arrow{color:#555;font-size:1.2rem}
+.table-wrap{overflow-x:auto;margin:1rem 0}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{background:#1a1b1a;color:#c8420a;text-align:left;padding:.6rem .8rem;border-bottom:2px solid #333}
+td{padding:.5rem .8rem;border-bottom:1px solid #1e1f1e}
+tr:hover td{background:#161816}
+.checklist{list-style:none;padding:0}
+.checklist li{padding:.4rem 0;font-size:.85rem}
+.checklist li::before{content:"[ ] ";color:#c8420a;font-weight:700}
+.checklist li.done::before{content:"[x] ";color:#3f8624}
+code{background:#1a1b1a;padding:2px 6px;border-radius:3px;font-size:.82rem}
+pre{background:#121312;border:1px solid #333;border-radius:6px;padding:1rem;overflow-x:auto;font-size:.8rem;margin:1rem 0}
+.section{margin:2rem 0}
+.footer{border-top:1px solid #333;padding-top:1.5rem;margin-top:3rem;text-align:center;font-size:.75rem;color:#666}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}}
+.flow-row{display:flex;align-items:center;justify-content:center;gap:.4rem;margin:.5rem 0;flex-wrap:wrap}
+.flow-col{display:flex;flex-direction:column;align-items:center;gap:.4rem}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div style="margin-bottom:1rem">
+<span class="badge">Microsoft Azure</span>
+<span class="badge badge-accent">Terraform Module</span>
+<span class="badge" style="background:#333">v1.0</span>
+</div>
+
+<h1>terraform-azure-hub-spoke-network</h1>
+
+<!-- EXECUTIVE SUMMARY -->
+<div class="section">
+<h2>Executive Summary</h2>
+<p>Enterprise-grade Terraform module for deploying a hub-and-spoke network topology on Azure. Provisions a centralized hub virtual network with Azure Firewall (Standard/Premium), Azure Bastion, VPN Gateway, ExpressRoute Gateway, and Route Server, alongside configurable spoke VNets with automatic peering and firewall-routed UDRs. Includes integrated diagnostic settings for comprehensive network monitoring.</p>
+</div>
+
+<!-- OVERVIEW CARDS -->
+<div class="section">
+<h2>Overview</h2>
+<div class="cards">
+<div class="card"><div class="num">14</div><h3>Resources</h3><p>VNets, Peerings, Firewall, Bastion, Gateways, Route Tables, Diagnostics</p></div>
+<div class="card"><div class="num">18</div><h3>Variables</h3><p>Configurable input parameters</p></div>
+<div class="card"><div class="num">17</div><h3>Outputs</h3><p>IDs, IPs, DNS names for all components</p></div>
+<div class="card"><div class="num">3</div><h3>Examples</h3><p>Basic, Advanced, Complete</p></div>
+</div>
+</div>
+
+<!-- ARCHITECTURE DIAGRAM -->
+<div class="section">
+<h2>Architecture Diagram</h2>
+<div class="arch-diagram">
+<div class="flow-col">
+<div class="flow-row">
+<div class="box purple">On-Premises Network</div>
+<div class="arrow">&rarr;</div>
+<div class="box blue">VPN Gateway / ExpressRoute</div>
+</div>
+<div class="arrow" style="display:block;text-align:center">|</div>
+<div style="border:2px solid #0078d4;border-radius:8px;padding:1.5rem;margin:1rem auto;max-width:700px">
+<div style="text-align:center;color:#7ec8f0;font-weight:700;margin-bottom:1rem">Hub Virtual Network</div>
+<div class="flow-row">
+<div class="box blue">Azure Firewall<br><small>Premium + IDPS + DNS Proxy</small></div>
+<div class="box blue">Azure Bastion<br><small>Standard SKU</small></div>
+<div class="box blue">Route Server</div>
+</div>
+</div>
+<div class="flow-row">
+<div class="arrow">&darr; Peering</div>
+<div class="arrow">&darr; Peering</div>
+<div class="arrow">&darr; Peering</div>
+</div>
+<div class="flow-row">
+<div style="border:2px solid #3f8624;border-radius:8px;padding:1rem;margin:.3rem">
+<div style="color:#7fba00;font-weight:700;text-align:center;margin-bottom:.5rem">Spoke: App</div>
+<div class="box green">Frontend Subnet</div>
+<div class="box green">Backend Subnet</div>
+</div>
+<div style="border:2px solid #ff9900;border-radius:8px;padding:1rem;margin:.3rem">
+<div style="color:#ffb84d;font-weight:700;text-align:center;margin-bottom:.5rem">Spoke: Data</div>
+<div class="box orange">DB Subnet</div>
+<div class="box orange">Storage Subnet</div>
+</div>
+<div style="border:2px solid #dd344c;border-radius:8px;padding:1rem;margin:.3rem">
+<div style="color:#ff6b7a;font-weight:700;text-align:center;margin-bottom:.5rem">Spoke: DMZ</div>
+<div class="box red">Public Subnet</div>
+<div class="box red">Private Subnet</div>
+</div>
+</div>
+<div class="flow-row" style="margin-top:1rem">
+<div class="box purple">UDR: 0.0.0.0/0 &rarr; Azure Firewall</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- COMPONENT BREAKDOWN -->
+<div class="section">
+<h2>Component Breakdown</h2>
+<div class="table-wrap">
+<table>
+<tr><th>Resource</th><th>Purpose</th><th>Optional</th></tr>
+<tr><td><code>azurerm_virtual_network.hub</code></td><td>Hub VNet with reserved subnets (Firewall, Gateway, Bastion, RouteServer)</td><td>No</td></tr>
+<tr><td><code>azurerm_virtual_network.spoke</code></td><td>Spoke VNets with configurable subnets</td><td>No</td></tr>
+<tr><td><code>azurerm_virtual_network_peering</code></td><td>Bidirectional hub-to-spoke peering with gateway transit</td><td>No</td></tr>
+<tr><td><code>azurerm_firewall</code></td><td>Azure Firewall (Standard/Premium) with policy and rule collections</td><td>Yes</td></tr>
+<tr><td><code>azurerm_firewall_policy</code></td><td>Firewall policy with IDPS, DNS proxy, threat intelligence</td><td>Yes</td></tr>
+<tr><td><code>azurerm_bastion_host</code></td><td>Azure Bastion for secure VM access (Basic/Standard)</td><td>Yes</td></tr>
+<tr><td><code>azurerm_virtual_network_gateway.vpn</code></td><td>VPN Gateway for site-to-site connectivity</td><td>Yes</td></tr>
+<tr><td><code>azurerm_virtual_network_gateway.expressroute</code></td><td>ExpressRoute Gateway for private connectivity</td><td>Yes</td></tr>
+<tr><td><code>azurerm_route_server</code></td><td>Route Server for dynamic NVA route exchange</td><td>Yes</td></tr>
+<tr><td><code>azurerm_route_table.spoke</code></td><td>UDR tables routing spoke traffic through firewall</td><td>Yes</td></tr>
+<tr><td><code>azurerm_monitor_diagnostic_setting</code></td><td>Firewall and Bastion diagnostic logs to Log Analytics</td><td>Yes</td></tr>
+</table>
+</div>
+</div>
+
+<!-- DATA FLOW -->
+<div class="section">
+<h2>Data Flow</h2>
+<div class="arch-diagram">
+<div class="flow-row">
+<div class="box green">Spoke Workload</div>
+<div class="arrow">&rarr;</div>
+<div class="box purple">UDR (0.0.0.0/0)</div>
+<div class="arrow">&rarr;</div>
+<div class="box blue">Azure Firewall</div>
+<div class="arrow">&rarr;</div>
+<div class="box orange">Internet / On-Prem</div>
+</div>
+</div>
+<p style="font-size:.85rem;color:#bbb;margin-top:.5rem"><strong>Spoke-to-Internet:</strong> Traffic from spoke subnets with <code>route_through_firewall = true</code> hits the UDR default route, forcing all egress through Azure Firewall for inspection. <strong>Spoke-to-Spoke:</strong> Inter-spoke traffic transits the hub via peering and firewall. <strong>On-Premises:</strong> VPN/ExpressRoute terminates at the hub gateway; spokes use remote gateways via peering config.</p>
+</div>
+
+<!-- SECURITY CONTROLS -->
+<div class="section">
+<h2>Security Controls</h2>
+<div class="grid-2">
+<div class="card">
+<h3>Network Segmentation</h3>
+<p>- Hub-spoke isolation with VNet peering<br>- Per-spoke UDR forcing traffic through firewall<br>- BGP route propagation disabled on spoke route tables<br>- Subnet-level security boundaries</p>
+</div>
+<div class="card">
+<h3>Firewall &amp; Threat Protection</h3>
+<p>- Azure Firewall Premium with IDPS (Alert mode)<br>- Threat intelligence mode: Deny<br>- DNS proxy for FQDN-based rules<br>- Network, application, and NAT rule collections<br>- Diagnostic logging for all rule hits</p>
+</div>
+<div class="card">
+<h3>Access Control</h3>
+<p>- Azure Bastion for secure SSH/RDP (no public IPs on VMs)<br>- Standard SKU with advanced features<br>- Audit logging for Bastion sessions</p>
+</div>
+<div class="card">
+<h3>Hybrid Connectivity</h3>
+<p>- VPN Gateway with RouteBased VPN<br>- ExpressRoute for private WAN<br>- Gateway transit enabled for spoke access<br>- Route Server for NVA BGP integration</p>
+</div>
+</div>
+</div>
+
+<!-- INDUSTRY ADAPTATION -->
+<div class="section">
+<h2>Industry Adaptation</h2>
+<div class="cards">
+<div class="card"><h3>Enterprise IT</h3><p>Hub-spoke with shared services, centralized firewall, and multi-spoke isolation for different business units</p></div>
+<div class="card"><h3>Financial Services</h3><p>ExpressRoute for dedicated connectivity, Firewall Premium with IDPS, strict UDR enforcement on all spokes</p></div>
+<div class="card"><h3>Healthcare</h3><p>Network segmentation for HIPAA compliance, Bastion for audit-logged access, no public IP exposure</p></div>
+<div class="card"><h3>Government</h3><p>Azure Firewall threat intelligence in Deny mode, full diagnostic logging, Route Server for NVA integration</p></div>
+</div>
+</div>
+
+<!-- PRODUCTION READINESS CHECKLIST -->
+<div class="section">
+<h2>Production Readiness Checklist</h2>
+<ul class="checklist">
+<li class="done">Azure Firewall Premium with IDPS and threat intelligence</li>
+<li class="done">UDR routes all spoke traffic through firewall</li>
+<li class="done">Azure Bastion Standard for secure VM access</li>
+<li class="done">VNet peering with gateway transit configured</li>
+<li class="done">Diagnostic settings for firewall and bastion</li>
+<li class="done">BGP route propagation disabled on spoke route tables</li>
+<li>Configure firewall policy rule collection groups</li>
+<li>Set up ExpressRoute or VPN for on-premises connectivity</li>
+<li>Enable Network Watcher for flow logs</li>
+<li>Review address space for overlap prevention</li>
+</ul>
+</div>
+
+<!-- CONFIGURATION REFERENCE -->
+<div class="section">
+<h2>Configuration Reference</h2>
+<h3>Key Variables</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Variable</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>name_prefix</code></td><td>string</td><td>--</td><td>Prefix for all resource names</td></tr>
+<tr><td><code>resource_group_name</code></td><td>string</td><td>--</td><td>Resource group name</td></tr>
+<tr><td><code>location</code></td><td>string</td><td>--</td><td>Azure region</td></tr>
+<tr><td><code>hub_vnet_address_space</code></td><td>list(string)</td><td>--</td><td>Hub VNet CIDR blocks</td></tr>
+<tr><td><code>spoke_vnets</code></td><td>map(object)</td><td>{}</td><td>Spoke VNets with subnets and firewall routing</td></tr>
+<tr><td><code>enable_firewall</code></td><td>bool</td><td>true</td><td>Deploy Azure Firewall</td></tr>
+<tr><td><code>firewall_sku_tier</code></td><td>string</td><td>Premium</td><td>Standard or Premium</td></tr>
+<tr><td><code>enable_bastion</code></td><td>bool</td><td>true</td><td>Deploy Azure Bastion</td></tr>
+<tr><td><code>enable_vpn_gateway</code></td><td>bool</td><td>false</td><td>Deploy VPN Gateway</td></tr>
+<tr><td><code>enable_expressroute</code></td><td>bool</td><td>false</td><td>Deploy ExpressRoute Gateway</td></tr>
+<tr><td><code>enable_route_server</code></td><td>bool</td><td>false</td><td>Deploy Azure Route Server</td></tr>
+</table>
+</div>
+</div>
+
+<!-- DEPLOYMENT -->
+<div class="section">
+<h2>Deployment</h2>
+<pre>
+terraform init
+terraform plan -var-file="networking.tfvars"
+terraform apply -var-file="networking.tfvars"
+
+# Verify hub VNet
+az network vnet show --name myproject-hub-vnet --resource-group rg-networking
+# Check firewall status
+az network firewall show --name myproject-fw --resource-group rg-networking
+</pre>
+</div>
+
+<!-- LINKS -->
+<div class="section">
+<h2>Links</h2>
+<p>
+<a href="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke">Hub-Spoke Reference Architecture</a> |
+<a href="https://learn.microsoft.com/en-us/azure/firewall/">Azure Firewall Docs</a> |
+<a href="../examples/basic/">Basic Example</a> |
+<a href="../examples/advanced/">Advanced Example</a> |
+<a href="../examples/complete/">Complete Example</a>
+</p>
+</div>
+
+<div class="footer">
+<p>terraform-azure-hub-spoke-network &mdash; Architecture Document</p>
+<p>Generated on 2026-03-15 &bull; Terraform &ge; 1.5.0 &bull; AzureRM &ge; 3.80.0</p>
+<p style="margin-top:.5rem"><span class="badge">Microsoft Azure</span> Verified Module Architecture</p>
+</div>
+
+</div>
+</body>
+</html>
