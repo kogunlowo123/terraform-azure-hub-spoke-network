@@ -1,7 +1,3 @@
-###############################################################################
-# Hub VNet Outputs
-###############################################################################
-
 output "hub_vnet_id" {
   description = "The ID of the hub virtual network."
   value       = azurerm_virtual_network.hub.id
@@ -16,10 +12,6 @@ output "hub_subnet_ids" {
   description = "Map of hub subnet names to their IDs."
   value       = { for k, v in azurerm_subnet.hub : k => v.id }
 }
-
-###############################################################################
-# Spoke VNet Outputs
-###############################################################################
 
 output "spoke_vnet_ids" {
   description = "Map of spoke VNet keys to their IDs."
@@ -36,10 +28,6 @@ output "spoke_subnet_ids" {
   value       = { for k, v in azurerm_subnet.spoke : k => v.id }
 }
 
-###############################################################################
-# Azure Firewall Outputs
-###############################################################################
-
 output "firewall_id" {
   description = "The ID of the Azure Firewall."
   value       = var.enable_firewall ? azurerm_firewall.this[0].id : null
@@ -47,7 +35,7 @@ output "firewall_id" {
 
 output "firewall_private_ip" {
   description = "The private IP address of the Azure Firewall."
-  value       = local.firewall_private_ip
+  value       = var.enable_firewall ? azurerm_firewall.this[0].ip_configuration[0].private_ip_address : null
 }
 
 output "firewall_public_ip" {
@@ -60,10 +48,6 @@ output "firewall_policy_id" {
   value       = var.enable_firewall ? azurerm_firewall_policy.this[0].id : null
 }
 
-###############################################################################
-# Azure Bastion Outputs
-###############################################################################
-
 output "bastion_id" {
   description = "The ID of the Azure Bastion Host."
   value       = var.enable_bastion ? azurerm_bastion_host.this[0].id : null
@@ -73,10 +57,6 @@ output "bastion_dns_name" {
   description = "The DNS name of the Azure Bastion Host."
   value       = var.enable_bastion ? azurerm_bastion_host.this[0].dns_name : null
 }
-
-###############################################################################
-# VPN Gateway Outputs
-###############################################################################
 
 output "vpn_gateway_id" {
   description = "The ID of the VPN Gateway."
@@ -88,29 +68,17 @@ output "vpn_gateway_public_ip" {
   value       = var.enable_vpn_gateway ? azurerm_public_ip.vpn_gateway[0].ip_address : null
 }
 
-###############################################################################
-# ExpressRoute Gateway Outputs
-###############################################################################
-
 output "expressroute_gateway_id" {
   description = "The ID of the ExpressRoute Gateway."
   value       = var.enable_expressroute ? azurerm_virtual_network_gateway.expressroute[0].id : null
 }
-
-###############################################################################
-# Route Server Outputs
-###############################################################################
 
 output "route_server_id" {
   description = "The ID of the Azure Route Server."
   value       = var.enable_route_server ? azurerm_route_server.this[0].id : null
 }
 
-###############################################################################
-# Route Table Outputs
-###############################################################################
-
 output "spoke_route_table_ids" {
-  description = "Map of spoke VNet keys to their route table IDs (only for firewall-routed spokes)."
+  description = "Map of spoke VNet keys to their route table IDs."
   value       = { for k, v in azurerm_route_table.spoke : k => v.id }
 }

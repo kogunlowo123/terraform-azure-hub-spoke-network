@@ -1,7 +1,3 @@
-###############################################################################
-# Hub Virtual Network
-###############################################################################
-
 resource "azurerm_virtual_network" "hub" {
   name                = "${var.name_prefix}-hub-vnet"
   location            = var.location
@@ -11,17 +7,35 @@ resource "azurerm_virtual_network" "hub" {
 }
 
 resource "azurerm_subnet" "hub" {
-  for_each = local.hub_subnets
+  for_each = merge(
+    var.enable_firewall ? {
+      AzureFirewallSubnet = {
+        address_prefixes = [cidrsubnet(var.hub_vnet_address_space[0], 2, 0)]
+      }
+    } : {},
+    {
+      GatewaySubnet = {
+        address_prefixes = [cidrsubnet(var.hub_vnet_address_space[0], 2, 1)]
+      }
+    },
+    var.enable_bastion ? {
+      AzureBastionSubnet = {
+        address_prefixes = [cidrsubnet(var.hub_vnet_address_space[0], 2, 2)]
+      }
+    } : {},
+    var.enable_route_server ? {
+      RouteServerSubnet = {
+        address_prefixes = [cidrsubnet(var.hub_vnet_address_space[0], 2, 3)]
+      }
+    } : {},
+    var.hub_subnets,
+  )
 
   name                 = each.key
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.hub.name
   address_prefixes     = each.value.address_prefixes
 }
-
-###############################################################################
-# Spoke Virtual Networks
-###############################################################################
 
 resource "azurerm_virtual_network" "spoke" {
   for_each = var.spoke_vnets
@@ -35,7 +49,15 @@ resource "azurerm_virtual_network" "spoke" {
 
 resource "azurerm_subnet" "spoke" {
   for_each = {
-    for s in local.spoke_subnets : "${s.vnet_key}-${s.subnet_key}" => s
+    for s in flatten([
+      for vnet_key, vnet in var.spoke_vnets : [
+        for subnet_key, subnet in vnet.subnets : {
+          vnet_key         = vnet_key
+          subnet_key       = subnet_key
+          address_prefixes = subnet.address_prefixes
+        }
+      ]
+    ]) : "${s.vnet_key}-${s.subnet_key}" => s
   }
 
   name                 = each.value.subnet_key
@@ -43,10 +65,6 @@ resource "azurerm_subnet" "spoke" {
   virtual_network_name = azurerm_virtual_network.spoke[each.value.vnet_key].name
   address_prefixes     = each.value.address_prefixes
 }
-
-###############################################################################
-# VNet Peering: Hub <-> Spoke
-###############################################################################
 
 resource "azurerm_virtual_network_peering" "hub_to_spoke" {
   for_each = var.spoke_vnets
@@ -76,10 +94,6 @@ resource "azurerm_virtual_network_peering" "spoke_to_hub" {
     azurerm_virtual_network_gateway.expressroute,
   ]
 }
-
-###############################################################################
-# Azure Firewall
-###############################################################################
 
 resource "azurerm_public_ip" "firewall" {
   count = var.enable_firewall ? 1 : 0
@@ -211,10 +225,6 @@ resource "azurerm_firewall" "this" {
   }
 }
 
-###############################################################################
-# Azure Bastion
-###############################################################################
-
 resource "azurerm_public_ip" "bastion" {
   count = var.enable_bastion ? 1 : 0
 
@@ -241,10 +251,6 @@ resource "azurerm_bastion_host" "this" {
     public_ip_address_id = azurerm_public_ip.bastion[0].id
   }
 }
-
-###############################################################################
-# VPN Gateway
-###############################################################################
 
 resource "azurerm_public_ip" "vpn_gateway" {
   count = var.enable_vpn_gateway ? 1 : 0
@@ -278,10 +284,6 @@ resource "azurerm_virtual_network_gateway" "vpn" {
   }
 }
 
-###############################################################################
-# ExpressRoute Gateway
-###############################################################################
-
 resource "azurerm_public_ip" "expressroute" {
   count = var.enable_expressroute ? 1 : 0
 
@@ -311,10 +313,6 @@ resource "azurerm_virtual_network_gateway" "expressroute" {
   }
 }
 
-###############################################################################
-# Azure Route Server
-###############################################################################
-
 resource "azurerm_public_ip" "route_server" {
   count = var.enable_route_server ? 1 : 0
 
@@ -339,12 +337,10 @@ resource "azurerm_route_server" "this" {
   tags                             = var.tags
 }
 
-###############################################################################
-# Route Tables & UDRs (for spokes routing through the firewall)
-###############################################################################
-
 resource "azurerm_route_table" "spoke" {
-  for_each = local.firewall_routed_spokes
+  for_each = {
+    for k, v in var.spoke_vnets : k => v if v.route_through_firewall && var.enable_firewall
+  }
 
   name                          = "${var.name_prefix}-${each.key}-rt"
   location                      = var.location
@@ -356,23 +352,27 @@ resource "azurerm_route_table" "spoke" {
     name                   = "default-to-firewall"
     address_prefix         = "0.0.0.0/0"
     next_hop_type          = "VirtualAppliance"
-    next_hop_in_ip_address = local.firewall_private_ip
+    next_hop_in_ip_address = var.enable_firewall ? azurerm_firewall.this[0].ip_configuration[0].private_ip_address : null
   }
 }
 
 resource "azurerm_subnet_route_table_association" "spoke" {
   for_each = {
-    for s in local.spoke_subnets : "${s.vnet_key}-${s.subnet_key}" => s
-    if lookup(local.firewall_routed_spokes, s.vnet_key, null) != null
+    for s in flatten([
+      for vnet_key, vnet in var.spoke_vnets : [
+        for subnet_key, subnet in vnet.subnets : {
+          vnet_key         = vnet_key
+          subnet_key       = subnet_key
+          address_prefixes = subnet.address_prefixes
+        }
+      ]
+    ]) : "${s.vnet_key}-${s.subnet_key}" => s
+    if lookup({ for k, v in var.spoke_vnets : k => v if v.route_through_firewall && var.enable_firewall }, s.vnet_key, null) != null
   }
 
   subnet_id      = azurerm_subnet.spoke["${each.value.vnet_key}-${each.value.subnet_key}"].id
   route_table_id = azurerm_route_table.spoke[each.value.vnet_key].id
 }
-
-###############################################################################
-# Diagnostic Settings
-###############################################################################
 
 resource "azurerm_monitor_diagnostic_setting" "firewall" {
   count = var.enable_firewall && var.log_analytics_workspace_id != null ? 1 : 0

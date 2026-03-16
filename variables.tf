@@ -19,7 +19,7 @@ variable "hub_vnet_address_space" {
 }
 
 variable "hub_subnets" {
-  description = "Map of additional hub subnets to create (excluding reserved subnets which are created automatically)."
+  description = "Map of additional hub subnets to create beyond the reserved subnets."
   type = map(object({
     address_prefixes = list(string)
   }))
@@ -29,7 +29,7 @@ variable "hub_subnets" {
 variable "spoke_vnets" {
   description = "Map of spoke virtual networks to create and peer with the hub."
   type = map(object({
-    address_space          = list(string)
+    address_space = list(string)
     subnets = map(object({
       address_prefixes = list(string)
     }))
@@ -45,13 +45,13 @@ variable "enable_firewall" {
 }
 
 variable "firewall_sku_tier" {
-  description = "SKU tier for the Azure Firewall. Possible values: Standard, Premium."
+  description = "SKU tier for the Azure Firewall (Standard or Premium)."
   type        = string
   default     = "Premium"
 }
 
 variable "firewall_threat_intel_mode" {
-  description = "Threat intelligence mode for the Azure Firewall. Possible values: Off, Alert, Deny."
+  description = "Threat intelligence mode for the Azure Firewall (Off, Alert, or Deny)."
   type        = string
   default     = "Deny"
 }
@@ -112,7 +112,7 @@ variable "enable_bastion" {
 }
 
 variable "bastion_sku" {
-  description = "SKU for Azure Bastion. Possible values: Basic, Standard."
+  description = "SKU for Azure Bastion (Basic or Standard)."
   type        = string
   default     = "Standard"
 }
@@ -130,7 +130,7 @@ variable "vpn_gateway_sku" {
 }
 
 variable "vpn_gateway_type" {
-  description = "Type of VPN Gateway. Possible values: Vpn, ExpressRoute."
+  description = "Type of VPN Gateway (Vpn or ExpressRoute)."
   type        = string
   default     = "Vpn"
 }
