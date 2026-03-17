@@ -1,3 +1,9 @@
+![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5-blueviolet?logo=terraform)
+![Azure](https://img.shields.io/badge/Azure-0078D4?logo=microsoftazure&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![CI](https://img.shields.io/github/actions/workflow/status/kogunlowo123/terraform-azure-hub-spoke-network/terraform-ci.yml?label=CI)
+![GitHub release](https://img.shields.io/github/v/release/kogunlowo123/terraform-azure-hub-spoke-network)
+
 # Terraform Azure Hub-Spoke Network
 
 Deploys a hub-and-spoke network topology on Azure with Azure Firewall, Bastion, VPN Gateway, ExpressRoute, and Route Server.
